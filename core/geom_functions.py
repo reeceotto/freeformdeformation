@@ -80,6 +80,15 @@ def WeightedControlPoints(controlPoints, weights, dimension):
                 Pw[i][j][-1] = weights[i][j]
                 for k in range(len(controlPoints[0][0])):
                     Pw[i][j][k] = weights[i][j] * np.array(controlPoints[i][j][k])
+    
+    if dimension == 3:
+        Pw = np.zeros((len(controlPoints), len(controlPoints[0]), len(controlPoints[0][0]), len(controlPoints[0][0][0]) + 1))
+        for i in range(len(controlPoints)):
+            for j in range(len(controlPoints[0])):
+                for k in range(len(controlPoints[0][0])):
+                    Pw[i][j][k][-1] = weights[i][j][k]
+                    for l in range(len(controlPoints[0][0][0])):
+                       Pw[i][j][k][l] = weights[i][j][k] * np.array(controlPoints[i][j][k][l]) 
     return Pw
 
 def BSplineBasisFuns(i, parameter, degree, knotVector):
@@ -109,78 +118,47 @@ def BSplineBasisFuns(i, parameter, degree, knotVector):
         B[j] = saved
     return B
 
-def BSplineCurvePoint(parameter, knotVector, degree, controlPoints):
+def ExtractCoordinates(listOfCoords):
     """
-    Returns a list of 3D Cartesian coordinates at a given parametric point on a B-Spline curve.
-    This is algorithm A3.1 on pg 82 of 'The NURBS Book' - Les Piegl & Wayne Tiller, 1997.
-    
-    Arguments:
-    parameter -- parameteric coordinate
-    knotVector -- list of parametric coords that define knot locations
-    degree -- degree of polynomial segments
-    controlPoints -- list of control point coordinates
+    Takes a list of coordinates and returns separate lists organised into x, y and z components respectively.
     """
-    span = FindSpan(degree, parameter, knotVector)
-    B = BSplineBasisFuns(span, parameter, degree, knotVector)
-    C = 0
-    for i in range(degree + 1):
-        C += B[i] * np.array(controlPoints[span-degree+i])
-    return C
+    xCoords, yCoords = [], []
+    for i in range(len(listOfCoords)):
+        xCoords.append(listOfCoords[i][0])
+        yCoords.append(listOfCoords[i][1])
+    if len(listOfCoords[0]) == 3:
+        zCoords = [listOfCoords[i][2] for i in range(len(listOfCoords))]
+    if len(listOfCoords[0]) == 2:
+        return xCoords, yCoords
+    elif len(listOfCoords[0]) == 3:
+        return xCoords, yCoords, zCoords
+    else:
+        print('Invalid dimension.')
 
-def NURBSCurvePoint(parameter, knotVector, degree, controlPoints, weights):
+def CurveCoordinates(curve, N=100, **kwargs):
     """
-    Returns a list of 3D Cartesian coordinates at a given parametric point on a NURBS curve.
-    This is algorithm A4.1 on pg 124 of 'The NURBS Book' - Les Piegl & Wayne Tiller, 1997.
+    Returns a list of Cartesian curve coordinates.
+        
+    start -- parametric coordinate at which curve begins (default value shown below)
+    stop -- parametric coordinate at which curve stops (default value shown below)
+    N -- number of points evaluated between start and stop (default = 100)
+    """
+    start = kwargs.get('start', curve.knotVector[curve.degree])
+    stop = kwargs.get('stop', curve.knotVector[-(curve.degree + 1)])
+    parameterValues = np.linspace(start, stop, N)
+    return [curve.PointCoordinates(x) for x in parameterValues]
     
-    Arguments:
-    parameter -- parameteric coordinate
-    knotVector -- list of parametric coords that define knot locations
-    degree -- degree of polynomial segments
-    controlPoints -- list of control point coordinates
-    weights -- list of control point weights
-    """
-    dimension = 1
-    Pw = WeightedControlPoints(controlPoints, weights, dimension)
-    span = FindSpan(degree, parameter, knotVector)
-    B = BSplineBasisFuns(span, parameter, degree, knotVector)
-    Cw = 0
-    for j in range(degree+1):
-        Cw += B[j] * Pw[span-degree+j]
-    C = np.zeros(len(Cw)-1)
-    for k in range(len(C)):
-        C[k] = Cw[k] / Cw[-1]
-    return C
-    
-def NURBSSurfacePoint(parameter1, parameter2, knotVector1, knotVector2, degree1, degree2, controlPoints, weights):
-    """
-    Returns a list of 3D Cartesian coordinates at a given parametric point on a NURBS surface.
-    This is algorithm A4.3 on pg 134 of 'The NURBS Book' - Les Piegl & Wayne Tiller, 1997.
-    
-    Arguments:
-    controlPoints -- list (structured like array) that contains Cartesian control point coordinates
-    degree1 -- degree of polynomial segments in direction 1
-    degree2 -- degree of polynomial segments in direction 2
-    knotVector1 -- list of parametric coords that define knot locations in direction 1
-    knotVector2 -- list of parametric coords that define knot locations in direction 2
-    weights -- list of control point weights
-    """
-    dimension = 2
-    Pw = WeightedControlPoints(controlPoints, weights, dimension)
-    parameter1span = FindSpan(degree1, parameter1, knotVector1)
-    B1 = BSplineBasisFuns(parameter1span, parameter1, degree1, knotVector1)
-    parameter2span = FindSpan(degree2, parameter2, knotVector2)
-    B2 = BSplineBasisFuns(parameter2span, parameter2, degree2, knotVector2)
-    temp = np.nan * np.ones(degree2 + 1, dtype=np.ndarray)
-    for l in range(degree2 + 1):
-        temp[l] = 0
-        for k in range(degree1 + 1):
-            temp[l] += B1[k] * np.array(Pw[parameter1span-degree1+k][parameter2span-degree2+l])
-    Sw = 0
-    for l in range(degree2 + 1):
-        Sw += B2[l] * temp[l]
-    S = np.zeros(len(Sw)-1)
-    for k in range(len(S)):
-        S[k] = Sw[k] / Sw[-1]
-    return S
+def KnotCoordinates(geometricObject):
+    # Returns a list Cartesian knot coordinates of a given geometric object.
+    if geometricObject.dimension == 1:
+        return [geometricObject.PointCoordinates(x) for x in geometricObject.knotVector]
+    elif geometricObject.dimension == 2:
+        knots = []
+        for x in geometricObject.knotVector1:
+            for y in geometricObject.knotVector2:
+                knots.append(geometricObject.PointCoordinates(x, y))
+        return knots
+    else:
+        print('Geometric object has invalid dimension.')
 
 
