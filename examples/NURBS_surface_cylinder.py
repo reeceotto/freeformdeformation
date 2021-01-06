@@ -7,7 +7,7 @@ import geom_functions as gf
 import visualisation as visual
 from math import sqrt
 
-surface = gc.NURBSSurface()
+surface = gc.NURBS.Surface()
 
 # define control points
 surface.controlPoints = [[[0, 1, 0], [1, 1, 0], [1, 0, 0], [1, -1, 0], [0, -1, 0], [-1, -1, 0], [-1, 0, 0], [-1, 1, 0], [0, 1, 0]],
@@ -26,7 +26,7 @@ surface.knotVector1 = gf.KnotVector(len(surface.controlPoints), surface.degree1)
 surface.knotVector2 = [0, 0, 0, 1/4, 1/4, 1/2, 1/2, 3/4, 3/4, 1, 1, 1]
 
 # create surface plot
-visual.SurfacePlot(surface, N1=50, N2=50)
+visual.SurfacePlot(surface)
 
 # uncomment for circular arc at half height
 #visual.SurfacePlot(surface, showControlPoints=False, showControlPolygon=False, showKnots=False, N1=100, N2=100, start1=0.0, stop1=0.5, start2=0, stop2=0.5)
