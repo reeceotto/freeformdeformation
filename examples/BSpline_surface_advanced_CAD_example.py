@@ -8,7 +8,8 @@ import visualisation as visual
 from math import sqrt
 
 # BSpline surface example - Fig 1.25 from 'Advanced CAD Modelling' - Nikola Vukašinović & Jože Duhovnik, 2019
-surface = gc.NURBSSurface()
+# currently executed using a NURBS surface object, will update if BSpline functionality is added
+surface = gc.NURBS.Surface()
 
 # define control points
 surface.controlPoints = [[[0, 0, 0], [0.214, 0.538, 0], [0.660, 1.020, 0], [2.107, 1.207, 0], [2.495, 0.042, 0], [3.367, 0.997, 0], [4, 2, 0]],
@@ -33,5 +34,5 @@ surface.knotVector1 = gf.KnotVector(len(surface.controlPoints), surface.degree1)
 surface.knotVector2 = gf.KnotVector(len(surface.controlPoints[0]), surface.degree2)
 
 # create surface plot
-visual.SurfacePlot(surface, N1=50, N2=50, start1=0, stop1=0.5)
+visual.SurfacePlot(surface)
 
